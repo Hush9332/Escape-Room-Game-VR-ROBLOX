@@ -1,0 +1,109 @@
+-- Verwijzing naar het hoofdmodel van de schilderijenpuzzel
+local PaintingPuzzle = script.Parent
+
+-- De deur die verwijderd moet worden als de puzzel is opgelost
+local PaintDOOR = PaintingPuzzle:FindFirstChild("PaintDOOR")
+
+-- Geluid dat afgespeeld wordt wanneer de puzzel is voltooid
+local completionSound = Instance.new("Sound")
+completionSound.SoundId = "rbxassetid://17771366923" -- Vervang dit door een geldig geluids-ID
+completionSound.Parent = PaintingPuzzle
+
+-- Tabel met alle schilderijen en hun bijbehorende standaards
+local paintingPairs = {
+    {
+        painting = PaintingPuzzle.Painting1,  -- Het eerste schilderij
+        stand = PaintingPuzzle.PaintOne,     -- De standaard voor dit schilderij
+        newSize = Vector3.new(6, 0.226, 4),  -- Formaat van het geplaatste schilderij
+        newPositionOffset = Vector3.new(0, 0, 0), -- Positiecorrectie t.o.v. standaard
+        orientation = Vector3.new(0, 180, -90), -- Rotatie van geplaatst schilderij
+        imageId = "rbxassetid://106108636764740", -- Afbeelding die op het schilderij komt
+        isPlaced = false -- Of dit schilderij al geplaatst is
+    },
+    -- ... (andere schilderijen volgen hetzelfde patroon)
+}
+
+-- Variabele om te voorkomen dat meerdere schilderijen tegelijk geplaatst worden
+local isMerging = false
+
+-- Functie om te controleren of alle schilderijen geplaatst zijn
+local function checkAllPaintingsPlaced()
+    for _, pair in ipairs(paintingPairs) do
+        if not pair.isPlaced then
+            return false
+        end
+    end
+    return true
+end
+
+-- Functie die wordt aangeroepen wanneer de puzzel is voltooid
+local function onPuzzleComplete()
+    if PaintDOOR then
+        PaintDOOR:Destroy() -- Verwijder de deur
+    end
+    completionSound:Play() -- Speel het voltooiingsgeluid af
+    print("Puzzle completed! Door removed.")
+end
+
+-- Functie die wordt aangeroepen wanneer een schilderij of standaard wordt aangeraakt
+local function onTouched(hit, pair)
+    -- Controleer of:
+    -- 1. Er al een schilderij geplaatst wordt
+    -- 2. Dit schilderij al geplaatst is
+    -- 3. Het aangeraakte object niet bij dit paar hoort
+    if isMerging or pair.isPlaced or (hit ~= pair.painting and hit ~= pair.stand) then 
+        return 
+    end
+
+    -- Maak het schilderij vast (zodat het niet meer beweegt)
+    pair.painting.Anchored = true
+    isMerging = true -- Zet de debounce flag aan
+
+    -- Verwijder het originele schilderij
+    pair.painting:Destroy()
+
+    -- Maak een nieuw schilderij aan op de standaard
+    local newPainting = Instance.new("Part")
+    newPainting.Name = pair.painting.Name .. "Merged"  -- Nieuwe naam met "Merged"
+    newPainting.Size = pair.newSize
+    newPainting.Position = pair.stand.Position + pair.newPositionOffset
+    newPainting.Orientation = pair.orientation
+    newPainting.Anchored = true
+    newPainting.Parent = PaintingPuzzle
+
+    -- Voeg een SurfaceGui toe voor de afbeelding
+    local gui = Instance.new("SurfaceGui")
+    gui.Parent = newPainting
+    gui.Face = Enum.NormalId.Top -- De afbeelding komt op de bovenkant
+
+    -- Voeg de eigenlijke afbeelding toe
+    local image = Instance.new("ImageLabel")
+    image.Image = pair.imageId
+    image.Size = UDim2.new(1, 0, 1, 0)  -- Vul het hele SurfaceGui
+    image.Parent = gui
+
+    -- Markeer dit schilderij als geplaatst
+    pair.isPlaced = true
+    isMerging = false -- Zet de debounce flag uit
+
+    -- Controleer of alle schilderijen geplaatst zijn
+    if checkAllPaintingsPlaced() then
+        onPuzzleComplete()
+    end
+end
+
+-- Verbind de Touch-events voor alle schilderijparen
+for _, pair in ipairs(paintingPairs) do
+    if pair.painting and pair.stand then
+        -- Verbind voor zowel het schilderij als de standaard
+        pair.painting.Touched:Connect(function(hit) 
+            onTouched(hit, pair) 
+        end)
+        pair.stand.Touched:Connect(function(hit) 
+            onTouched(hit, pair) 
+        end)
+    else
+        -- Waarschuwing als er iets ontbreekt
+        warn("Missing painting or stand for pair: " .. tostring(_))
+    end
+end
