@@ -1,0 +1,74 @@
+-- Services initialiseren
+local Players = game:GetService("Players")
+local FinalDoor = workspace:WaitForChild("FINALDOOR")  -- Verwijzing naar de einddeur
+local Leaderboard = FinalDoor:WaitForChild("Leaderboard")  -- Fysiek leaderboard in de wereld
+local TeleportService = game:GetService("TeleportService")  -- Voor teleportatie functionaliteit
+local PlaceId = 126457053198720  -- ID van de plaats waar naartoe geteleporteerd wordt
+
+-- Data opslag
+local playerStartTimes = {}  -- Slaat starttijden per speler op {player = timestamp}
+local completionTimes = {}   -- Slaat eindtijden op {playerName = tijdInSeconden}
+
+-- Hulpfunctie om seconden om te zetten naar MM:SS formaat
+local function formatTime(seconds)
+    return string.format("%02d:%02d", math.floor(seconds/60), seconds%60)
+end
+
+-- Update het fysieke leaderboard in de wereld
+local function updateLeaderboard()
+    -- Maak een gesorteerde tabel van alle completion tijden
+    local sorted = {}
+    for name, time in pairs(completionTimes) do
+        table.insert(sorted, {name = name, time = time})
+    end
+
+    -- Sorteer van snelste naar langzaamste tijd
+    table.sort(sorted, function(a, b) return a.time < b.time end)
+
+    -- Bouw de leaderboard tekst op
+    local text = "FASTEST TIMES:\n\n"
+    for i, entry in ipairs(sorted) do
+        text ..= string.format("%d. %s - %s\n", i, entry.name, formatTime(entry.time))
+        if i >= 8 then break end  -- Toon alleen top 8
+    end
+
+    -- Update het daadwerkelijke leaderboard UI
+    Leaderboard.SurfaceGui.TextLabel.Text = text
+end
+
+-- Volg wanneer spelers joinen
+Players.PlayerAdded:Connect(function(player)
+    -- Registreer de starttijd van de speler
+    playerStartTimes[player] = os.time()
+
+    -- Start een aparte coroutine voor de timeout check
+    coroutine.wrap(function()
+        while playerStartTimes[player] do  -- Zolang de speler in de game is
+            -- Als de speler langer dan 10 minuten (600 sec) bezig is
+            if os.time() - playerStartTimes[player] >= 600 then
+                TeleportService:Teleport(PlaceId, player)  -- Teleporteer de speler
+                break
+            end
+            wait(5)  -- Controleer elke 5 seconden
+        end
+    end)()
+end)
+
+-- Luister naar wanneer de einddeur opengaat
+FinalDoor.Open.Changed:Connect(function(isOpen)
+    if isOpen then
+        -- Bereken de eindtijden voor alle actieve spelers
+        for player, startTime in pairs(playerStartTimes) do
+            if player and player.Parent then  -- Controleer of speler nog bestaat
+                completionTimes[player.Name] = os.time() - startTime
+            end
+        end
+
+        updateLeaderboard()  -- Update het leaderboard met de nieuwe tijden
+    end
+end)
+
+-- Ruim op wanneer spelers de game verlaten
+Players.PlayerRemoving:Connect(function(player)
+    playerStartTimes[player] = nil  -- Verwijder de speler uit de starttijden
+end)
