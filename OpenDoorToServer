@@ -1,0 +1,17 @@
+-- Haal het RemoteEvent op uit ReplicatedStorage dat wordt gebruikt om antwoorden te controleren
+local remoteEvent = game:GetService("ReplicatedStorage"):WaitForChild("CheckAnswer")
+
+-- Verwijzing naar de FINALDOOR in de workspace
+local finalDoor = workspace:WaitForChild("FINALDOOR")
+
+-- Haal de Open BoolValue op die bepaalt of de deur open moet gaan
+local openValue = finalDoor:WaitForChild("Open")
+
+-- Luister naar wanneer een client (speler) het RemoteEvent aanroept
+remoteEvent.OnServerEvent:Connect(function(player)
+    -- Zet de Open waarde op true om de deur te openen
+    openValue.Value = true
+    
+    -- Log welke speler de puzzel heeft opgelost (optioneel)
+    print(player.Name .. " solved the puzzle!")
+end)
