@@ -1,0 +1,61 @@
+-- Verwijzing naar de ChemicalTable (waar alle onderdelen in zitten)
+local ChemicalTable = script.Parent
+
+-- De twee blokken die nodig zijn voor de chemische reactie
+local block1 = ChemicalTable:FindFirstChild("Vinegar")  -- Azijn blok
+local block2 = ChemicalTable:FindFirstChild("Salt")     -- Zout blok
+
+-- Het tafelblad waarop de reactie plaatsvindt
+local TableTop = ChemicalTable:FindFirstChild("TableTop")
+
+-- De deur die open moet gaan na de tweede reactie
+local LockedDoor = ChemicalTable:FindFirstChild("LockedDoor")
+
+-- Variabele om te voorkomen dat de reactie meerdere keren tegelijk plaatsvindt
+local isMerging = false
+
+-- Functie die wordt aangeroepen wanneer een blok wordt aangeraakt
+local function onTouched(hit)
+    -- Stop als er al een reactie bezig is OF als het verkeerde blok is aangeraakt
+    if isMerging or not (hit == block1 or hit == block2) then return end
+
+    -- Controleer of BEIDE blokken bestaan en in de workspace zitten (niet opgeborgen zijn)
+    if block1 and block2 and block1:IsDescendantOf(workspace) and block2:IsDescendantOf(workspace) then
+        isMerging = true  -- Zet de debounce flag aan
+
+        -- Verwijder de originele blokken
+        block1:Destroy()
+        block2:Destroy()
+
+        -- Maak een nieuw blok aan (het resultaat van de chemische reactie)
+        local newCube = Instance.new("Part")
+        newCube.Name = "AcidCube"                  -- Naam voor herkenning
+        newCube.Size = Vector3.new(2, 2, 2)        -- Grootte van het blok
+        newCube.Color = Color3.new(0.184314, 1, 0) -- Felgroene kleur
+        newCube.Position = TableTop.Position + Vector3.new(0, 2, 0) -- Plaats boven de tafel
+        newCube.Anchored = false                   -- Zodat het kan vallen
+        newCube.CanCollide = true                  -- Zodat het kan botsen
+        newCube.Parent = ChemicalTable             -- Voeg toe aan de ChemicalTable
+
+        -- Voeg een StringValue toe om aan te geven dat dit blok gepakt kan worden
+        local value = Instance.new("StringValue")
+        value.Name = "CanGrab"
+        value.Parent = newCube
+
+        -- Functie die wordt aangeroepen wanneer het AcidCube iets aanraakt
+        local function onAcidCubeTouch(otherPart)
+            -- Controleer of het aangeraakte onderdeel bij de LockedDoor hoort
+            if LockedDoor and otherPart:IsDescendantOf(LockedDoor) then
+                LockedDoor:Destroy()  -- Vernietig de deur
+                newCube:Destroy()     -- Vernietig ook het groene blok (optioneel)
+            end
+        end
+
+        -- Verbind de Touch-event met de functie
+        newCube.Touched:Connect(onAcidCubeTouch)
+    end
+end
+
+-- Verbind de Touch-events van de originele blokken (met veiligheidscontroles)
+if block1 then block1.Touched:Connect(onTouched) end
+if block2 then block2.Touched:Connect(onTouched) end
