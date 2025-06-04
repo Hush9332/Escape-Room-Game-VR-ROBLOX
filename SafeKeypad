@@ -1,0 +1,65 @@
+-- Haal de correcte code op uit het 'yes' Value object
+local code = script.Parent.yes.Value
+
+-- Variabele om de gebruikersinvoer op te slaan
+local input = ""
+
+-- Maak het scherm leeg bij start
+screen.SurfaceGui.TextLabel.Text = ""
+
+-- Functie om het scherm te updaten met de huidige invoer
+function updateScreen()
+    screen.SurfaceGui.TextLabel.Text = input
+end
+
+-- Functie die wordt aangeroepen wanneer op Enter wordt gedrukt
+function enter()
+    -- Controleer of de ingevoerde code klopt
+    if input == code then
+        input = ""  -- Reset de invoer
+        screen.SurfaceGui.TextLabel.Text = "Correct"  -- Toon 'Correct'
+        
+        -- Activeer het torque van de deur zodat deze opent
+        script.Parent.Parent.Door.Torque.Enabled = true
+        
+        wait(3)  -- Wacht 3 seconden
+        screen.SurfaceGui.TextLabel.Text = ""  -- Maak het scherm weer leeg
+    else
+        -- Toon 'Incorrect' bij verkeerde code
+        screen.SurfaceGui.TextLabel.Text = "Incorrect"
+        input = ""  -- Reset de invoer
+        
+        wait(1)  -- Wacht 1 seconde
+        screen.SurfaceGui.TextLabel.Text = ""  -- Maak het scherm weer leeg
+    end
+end
+
+-- Functie om de invoer te wissen
+function clear()
+    input = ""  -- Reset de invoer
+    screen.SurfaceGui.TextLabel.Text = input  -- Update het scherm
+end
+
+-- Verbind de ClickDetectors van de knoppen:
+
+-- Nummer 0 knop
+buttons.N0.ClickDetector.MouseClick:Connect(function()
+    input = input..0  -- Voeg een 0 toe aan de invoer
+    updateScreen()    -- Update het scherm
+end)
+
+-- Nummer 1 knop
+buttons.N1.ClickDetector.MouseClick:Connect(function()
+    input = input..1  -- Voeg een 1 toe aan de invoer
+    updateScreen()    -- Update het scherm
+end)
+
+-- Enter knop
+buttons.Enter.ClickDetector.MouseClick:Connect(function()
+    enter()  -- Controleer de ingevoerde code
+end)
+
+-- Clear knop
+buttons.Clear.ClickDetector.MouseClick:Connect(function()
+    clear()  -- Wis de huidige invoer
+end)
