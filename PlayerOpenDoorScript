@@ -1,0 +1,28 @@
+-- Haal de lokale speler op
+local player = game.Players.LocalPlayer
+
+-- Wacht op het antwoordformulier bij de FINALDOOR
+local answerPaper = workspace:WaitForChild("FINALDOOR"):WaitForChild("AnswerPaper")
+
+-- Verwijzing naar het tekstvak in het SurfaceGui van het formulier
+local textBox = answerPaper.SurfaceGui.TextBox
+
+-- Verwijzing naar het RemoteEvent in ReplicatedStorage dat het antwoord controleert
+local remoteEvent = game:GetService("ReplicatedStorage"):WaitForChild("CheckAnswer")
+
+-- Luister naar wanneer de speler klaar is met typen (FocusLost event)
+textBox.FocusLost:Connect(function(enterPressed)
+    -- Controleer of de speler Enter heeft gedrukt (niet zomaar weggeklikt)
+    if enterPressed then
+        -- Controleer of het ingevoerde antwoord "120" is
+        if textBox.Text == "120" then
+            -- Stuur een bericht naar de server dat het antwoord goed is
+            remoteEvent:FireServer()
+            -- Laat "Correct!" zien in het tekstvak
+            textBox.Text = "Correct!"
+        else
+            -- Laat "Try again" zien bij een fout antwoord
+            textBox.Text = "Try again"
+        end
+    end
+end)
